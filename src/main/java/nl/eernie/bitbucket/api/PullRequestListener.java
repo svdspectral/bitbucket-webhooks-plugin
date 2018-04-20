@@ -1,5 +1,24 @@
 package nl.eernie.bitbucket.api;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.concurrent.ExecutorService;
+
+import org.apache.http.Header;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.message.BasicHeader;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.atlassian.bitbucket.ServiceException;
 import com.atlassian.bitbucket.build.BuildStatusSetEvent;
 import com.atlassian.bitbucket.event.branch.BranchCreatedEvent;
@@ -28,6 +47,7 @@ import com.atlassian.bitbucket.util.Version;
 import com.atlassian.event.api.EventListener;
 import com.atlassian.event.api.EventPublisher;
 import com.atlassian.plugin.spring.scanner.annotation.imports.ComponentImport;
+
 import nl.eernie.bitbucket.events.BitbucketPushEvent;
 import nl.eernie.bitbucket.events.BitbucketServerPullRequestEvent;
 import nl.eernie.bitbucket.events.BuildStatusEvent;
@@ -37,24 +57,6 @@ import nl.eernie.bitbucket.events.Events;
 import nl.eernie.bitbucket.model.Models;
 import nl.eernie.bitbucket.persistence.WebHookConfiguration;
 import nl.eernie.bitbucket.persistence.WebHookConfigurationDao;
-import org.apache.http.Header;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.message.BasicHeader;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.concurrent.ExecutorService;
 
 @Component
 public class PullRequestListener implements DisposableBean, InitializingBean
@@ -253,19 +255,7 @@ public class PullRequestListener implements DisposableBean, InitializingBean
                 try
                 {
                     ScmPullRequestCommandFactory pullRequestCommandFactory = scmService.getPullRequestCommandFactory(pullRequest);
-                    Command<?> command;
-                    if (useCanMerge)
-                    {
-                        /*
-                        This is to support version from 4.5.x - 4.9.x
-                        Once we only support from 4.10.x and beyond we can remove this.
-                         */
-                        command = pullRequestCommandFactory.canMerge();
-                    }
-                    else
-                    {
-                        command = pullRequestCommandFactory.tryMerge(pullRequest);
-                    }
+                    Command<?> command = pullRequestCommandFactory.tryMerge(pullRequest);
                     command.call();
                 }
                 catch (ServiceException e)
